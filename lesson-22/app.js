@@ -35,32 +35,48 @@ router.use(
  * @TODO: Listing 22.1 (p. 325)
  * app.js에서의 플래시 메시지 요청
  */
+const expressSession = require("express-session"),
+  cookieParser = require("cookie-parser"),
+  connectFlash = require("connect-flash");
+
+  router.use(cookieParser("secret_passcode"));
+router.use(
+  expressSession({
+    secret: "secret_passcode",
+    cookie : {
+      maxAge: 400000
+    },
+    resave: false,
+    saveUninitialized: false
+  })
+);
+router.use(connectFlash());
 
 /**
  * @TODO: Listing 22.2 (p. 327)
  * 응답상에서 connectFlash와 미들웨어와의 연계
  */
-
+router.use((req, res, next) => {
+  res.locals.flashMessages = req.flash();
+  next();
+});
 /**
  * =====================================================================
  * Define Mongoose and MongoDB connection
  * =====================================================================
  */
 
-// 애플리케이션에 Mongoose 설정
-const mongoose = require("mongoose"), // mongoose를 요청
-  dbName = "aaronkr";
-
+const mongoose = require("mongoose"); // mongoose를 요청
 // 데이터베이스 연결 설정
-mongoose.connect(`mongodb://127.0.0.1:27017/${dbName}`, {
-  useNewUrlParser: true,
+mongoose.connect("mongodb+srv://jhw030306:1234*@ut-node.pzxaori.mongodb.net/?retryWrites=true&w=majority&appName=UT-Node", {
 });
 
-// 연결되면 메시지를 보냄
 const db = mongoose.connection;
-db.once("open", () => {
-  console.log(`Connected to ${dbName} MongoDB using Mongoose!`);
+db.once("opne", () => {
+  console.log("Connected to MONGODB!!");
 });
+
+app.set("port", process.env.PORT || 3000);
 
 /**
  * =====================================================================
@@ -68,7 +84,6 @@ db.once("open", () => {
  * =====================================================================
  */
 
-app.set("port", process.env.PORT || 3000);
 
 // ejs 레이아웃 렌더링
 app.set("view engine", "ejs"); // ejs를 사용하기 위한 애플리케이션 세팅

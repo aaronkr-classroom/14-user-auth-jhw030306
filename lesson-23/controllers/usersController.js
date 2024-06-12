@@ -31,6 +31,43 @@ module.exports = {
    * Listing 23.3 (p. 336)
    * userController.js로의 로그인과 인증 액션 추가
    */
+  login: (req, res) => {
+    res.render("users/login", {
+      page: "login",
+      title: "Login"
+    });
+  },
+  
+  authenticate: (req, res, next) => {
+    User.findOne({ email: req.body.email })
+      .then(user => {
+        if (user) {
+          user.passwordCompare(req.body.password)
+            .then(pwMatch => {
+              if (pwMatch) {
+                res.locals.redirect = `/users/${user._id}`;
+                req.flash("success", "Login successful.");
+              } else {
+                res.locals.redirect = "/users/login";
+                req.flash("error", "Login failed: Incorrect password.");
+              }
+              next();
+            })
+            .catch(error => {
+              console.log(`Error comparing passwords: ${error.message}`);
+              next(error);
+            });
+        } else {
+          res.locals.redirect = "/users/login";
+          req.flash("error", "Login failed: User not found.");
+          next();
+        }
+      })
+      .catch(error => {
+        console.log(`Error logging in: ${error.message}`);
+        next(error);
+      });
+  },
 
   /**
    * @TODO: authenticate 액션
@@ -115,6 +152,35 @@ module.exports = {
    * Listing 23.7 (p. 346)
    * userController.js에서 validate 액션 추가
    */
+  validate: (req, res, next) => {
+    req
+      .sanitizeBody("email") // @ 및 .com, .net 있는지 확인
+      .normalizeEmail({
+        all_lowercase: true
+      })
+      .trim() // 앞 뒤 띄어쓰기
+      .check("email", "Email is invalid")
+      .isEmail();
+
+    req
+      .check("password", "password cannot be empty")
+      .notEmpty();
+
+    req.getValidationResult()
+      .then(result => {
+        if (!result.isEmpty()) {
+          let message = result.array().map()
+          req.skip = true;
+          req.flash("error", message.join(" and "));
+          res.locals.redirect = "/users/new"
+        }
+        next();
+      })
+      .catch(error => {
+        console.log(`Error: ${error.message}`);
+        next(error);
+      });
+  },
 
   /**
    * [노트] 폼 데이터를 다시 채우기 위해 다양한 방법을 선택할 수 있다. (연구해보면)
